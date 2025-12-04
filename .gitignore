@@ -1,0 +1,35 @@
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Output files
+*_vue3.vue
+examples/*_vue3*.vue
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (legacy)
+*.py[cod]
+*$py.class
+*.so
+ENV/
+env/
+*.env
