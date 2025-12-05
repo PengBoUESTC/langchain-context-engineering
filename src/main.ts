@@ -74,6 +74,12 @@ async function runInteractiveMode(agent: ContextEngineeringAgent) {
       return;
     }
 
+    if(query === 'png') {
+      console.log('\n🧐 流程图');
+      const picPath = await agent.png()
+      console.log('\n🧐 ', picPath);
+    }
+
     if (query === '') {
       rl.prompt();
       return;

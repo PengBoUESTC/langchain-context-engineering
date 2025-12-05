@@ -11,9 +11,17 @@ import { Annotation } from "@langchain/langgraph";
  * 用于 LangGraph 状态图的类型定义
  */
 export const AgentStateAnnotation = Annotation.Root({
-  question: Annotation<string>,
+  task: Annotation<string>,
   llmResEvaRes: Annotation<string>,
-  messages: Annotation<BaseMessage[]>,
+  messages: Annotation<BaseMessage[]>({
+    reducer: (left: BaseMessage[], right: BaseMessage | BaseMessage[]) => {
+      if (Array.isArray(right)) {
+        return left.concat(right);
+      }
+      return left.concat([right]);
+    },
+    default: () => []
+  }),
 })
 
 /**
@@ -21,7 +29,7 @@ export const AgentStateAnnotation = Annotation.Root({
  */
 export function createDefaultState(): typeof AgentStateAnnotation.State {
   return {
-    question: '',
+    task: '',
     llmResEvaRes: '',
     messages: [],
   };

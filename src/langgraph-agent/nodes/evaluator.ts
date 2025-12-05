@@ -26,7 +26,6 @@ export const createEvaluatorNode = () => {
   const evaluator = llm.withStructuredOutput(evaluateResSchema)
   return async (state: typeof AgentStateAnnotation.State) => {
     const { messages } = state
-    console.log(`evaluator 评价 messages ::`, messages)
 
     const evaluatorRes = await evaluator.invoke([
       { role: "system", content: "You should evaluate the response of the question" },

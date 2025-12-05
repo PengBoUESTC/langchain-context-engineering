@@ -4,6 +4,8 @@
  * https://www.promptingguide.ai/guides/context-engineering-guide
  * https://arxiv.org/html/2510.04618v1
  */
+import { writeFile } from "node:fs/promises";
+import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { StateGraph, START, END, MemorySaver } from "@langchain/langgraph";
 import { ChatDeepSeek } from "@langchain/deepseek";
@@ -78,6 +80,16 @@ export class ContextEngineeringAgent {
     return graph.compile({
       checkpointer
     });
+  }
+
+  /** 获取图 */
+  async png() {
+    const drawableGraph = await this.graph.getGraphAsync();
+    const image = await drawableGraph.drawMermaidPng();
+    const imageBuffer = new Uint8Array(await image.arrayBuffer());
+    const picPath = join(import.meta.dirname, 'graph.png')
+    await writeFile(picPath, imageBuffer);
+    return picPath
   }
 
   /**
