@@ -1,9 +1,16 @@
 import { ChatDeepSeek } from "@langchain/deepseek";
+
 import { AgentStateAnnotation } from '../state'
 import { fileReadTool } from '../tools'
 
 
-export const createRunnerNode = (runner: ChatDeepSeek) => {
+export const createRunnerNode = () => {
+  const runner = new ChatDeepSeek({
+    model: process.env.MODEL_NAME,
+    temperature: 0.1,
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
   const toolsMap = [fileReadTool].reduce<Record<string, any>>((res, tool) => {
     res[tool.getName()] = tool
     return res
@@ -13,7 +20,7 @@ export const createRunnerNode = (runner: ChatDeepSeek) => {
     const { messages } = state
     const runnerRes = await runnerWithTools.invoke([
       { role: "system", content: "you can get the file content by bind tools" },
-      ...messages
+      ...messages,
     ]);
     const { tool_calls = [] } = runnerRes
     const result = [runnerRes]
@@ -22,6 +29,7 @@ export const createRunnerNode = (runner: ChatDeepSeek) => {
       const toolResult = await tool.invoke(toolInfo);
       result.push(toolResult)
     }
+    console.log('runner node result =', result)
     return { messages: result };
   }
 }

@@ -24,12 +24,7 @@ async function main() {
   try {
     // 初始化 Agent
     console.log('📦 正在初始化 Agent...');
-    const agent = new ContextEngineeringAgent({
-      modelName: process.env.MODEL_NAME || 'gpt-4',
-      temperature: 0.1,
-      maxTokens: 8000,
-      notesDirectory: './notes',
-    });
+    const agent = new ContextEngineeringAgent();
     console.log('✅ Agent 初始化完成\n');
 
     // 解析命令行参数

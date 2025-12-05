@@ -7,8 +7,8 @@
 import { writeFile } from "node:fs/promises";
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { StateGraph, START, END, MemorySaver } from "@langchain/langgraph";
-import { ChatDeepSeek } from "@langchain/deepseek";
+import { StateGraph, START, END, MemorySaver, AnnotationRoot } from "@langchain/langgraph";
+import { RunnableConfig } from "@langchain/core/runnables";
 import { HumanMessage } from '@langchain/core/messages'
 import * as dotenv from 'dotenv';
 
@@ -17,6 +17,7 @@ import { AgentStateAnnotation, createDefaultState } from './state';
 import { routePlanner, createOrchestratorNode } from './nodes/orchestrator'
 import { createRunnerNode } from './nodes/fileReader'
 import { routeEvaluate, createEvaluatorNode } from './nodes/evaluator'
+import { createdMessageOptNode } from './nodes/messageOpt'
 
 dotenv.config();
 
@@ -29,23 +30,21 @@ const checkpointer = new MemorySaver()
  * 基于 LangGraph 和 Context Engineering 架构的智能 Agent
  */
 export class ContextEngineeringAgent {
-  private graph;
-  private runner: ChatDeepSeek;
+  private agent;
+  private runtimeConfig: RunnableConfig
 
-  constructor(config?: {
-    modelName?: string;
-    temperature?: number;
-    maxTokens?: number;
-    notesDirectory?: string;
-  }) {
-    this.runner = new ChatDeepSeek({
-      model: config?.modelName || process.env.MODEL_NAME,
-      temperature: config?.temperature || 0.1,
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
+  constructor() {
     // 构建图
-    this.graph = this.buildGraph();
+    this.agent = this.buildGraph();
+    // runtime config
+    this.runtimeConfig = { configurable: { thread_id: randomUUID() } };
+  }
+
+  private async getHistoryMessages(state: typeof AgentStateAnnotation.State, runtimeConfig: RunnableConfig) {
+    const { messages } = state
+    const { values = [] } = await this.agent.getState(runtimeConfig)
+
+    return [...messages, ...values]
   }
 
   /**
@@ -55,22 +54,26 @@ export class ContextEngineeringAgent {
     const graph = new StateGraph(AgentStateAnnotation);
 
     const plannerNode = createOrchestratorNode()
-    const runnerNode = createRunnerNode(this.runner)
+    const runnerNode = createRunnerNode()
     const evaluatorNode = createEvaluatorNode()
-
-    // const router = createRouterNode();
+    const messageOptNode = createdMessageOptNode()
 
     // 添加节点
     graph
       .addNode('plannerNode', plannerNode)    
       .addNode('runner', runnerNode)    
       .addNode('evaluator', evaluatorNode)    
+      .addNode('historyMessages', this.getHistoryMessages)
+      .addNode('messageOpt', messageOptNode)
       // 添加边
       .addEdge(START, 'plannerNode')
       .addConditionalEdges('plannerNode', routePlanner, {
-        'runner': 'runner'
+        runner: 'runner',
+        historyMessages: 'historyMessages'
       })
       .addEdge('runner', 'evaluator')
+      .addEdge('historyMessages', 'messageOpt')
+      .addEdge('messageOpt', 'evaluator')
       .addConditionalEdges('evaluator', routeEvaluate, {
         "good": END,
         "normal": END,
@@ -84,10 +87,10 @@ export class ContextEngineeringAgent {
 
   /** 获取图 */
   async png() {
-    const drawableGraph = await this.graph.getGraphAsync();
+    const drawableGraph = await this.agent.getGraphAsync();
     const image = await drawableGraph.drawMermaidPng();
     const imageBuffer = new Uint8Array(await image.arrayBuffer());
-    const picPath = join(import.meta.dirname, 'graph.png')
+    const picPath = join(import.meta.dirname, 'agent.png')
     await writeFile(picPath, imageBuffer);
     return picPath
   }
@@ -103,13 +106,11 @@ export class ContextEngineeringAgent {
     // 初始化状态
     const initialState = createDefaultState();
 
-
     // 添加用户输入消息
     initialState.messages.push(new HumanMessage(input));
-    const config = { configurable: { thread_id: randomUUID() } };
 
     // 运行图
-    const finalState = await this.graph.invoke(initialState, config);
+    const finalState = await this.agent.invoke(initialState, this.runtimeConfig);
 
     // 提取响应
     const lastMessage = finalState.messages[finalState.messages.length - 1];
