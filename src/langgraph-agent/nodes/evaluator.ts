@@ -28,7 +28,7 @@ export const createEvaluatorNode = () => {
     const { messages } = state
 
     const evaluatorRes = await evaluator.invoke([
-      { role: "system", content: "You should evaluate the response of the question" },
+      { role: "system", content: "You should evaluate the response of the task" },
       ...messages
     ]);
   

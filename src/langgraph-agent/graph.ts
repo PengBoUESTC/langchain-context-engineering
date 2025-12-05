@@ -74,7 +74,7 @@ export class ContextEngineeringAgent {
       .addConditionalEdges('evaluator', routeEvaluate, {
         "good": END,
         "normal": END,
-        "bad": END
+        "bad": 'plannerNode'
       })
 
     return graph.compile({

@@ -77,7 +77,9 @@ async function runInteractiveMode(agent: ContextEngineeringAgent) {
     if(query === 'png') {
       console.log('\n🧐 流程图');
       const picPath = await agent.png()
-      console.log('\n🧐 ', picPath);
+      console.log('\n🧐 path: ', `${picPath}\n`);
+      rl.prompt();
+      return 
     }
 
     if (query === '') {
